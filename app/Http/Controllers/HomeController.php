@@ -63,9 +63,9 @@ class HomeController extends Controller
            [  '$sort' =>[ '_id.year'=>1, '_id.month'=>1, '_id.day'=>1] ]
         ]);
 
-        foreach ($event as $key => $value) {
-            $data['labels'][] =  $value->_id->day.'/'.$this->parsingMonthName($value->_id->month).'/'.$value->_id->year;
-            $data['data'][]= $value->count;
+        foreach ($event['result'] as $key => $value) {
+            $data['labels'][] =  $value['_id']['day'].'/'.$this->parsingMonthName($value['_id']['month']).'/'.$value['_id']['year'];
+            $data['data'][]= $value['count'];
         }
       }elseif ($period=="weekly") {
          $event = Event::raw()->aggregate([
@@ -80,8 +80,8 @@ class HomeController extends Controller
            [  '$sort' =>[ '_id.year'=>1, '_id.week'=>1] ]
         ]);
 
-        foreach ($event as $key => $value) {
-            $data['labels'][] =  'week '.$value->_id->week.'-'.$value->_id->year;
+        foreach ($event['result'] as $key => $value) {
+            $data['labels'][] =  'week '.$value['_id']['week'].'-'.$value['_id']['year'];
             $data['data'][]= $value->count;
          }
       }else{
@@ -100,8 +100,8 @@ class HomeController extends Controller
            [  '$sort' =>[ '_id.year'=>1, '_id.month'=>1] ]
         ]);
 
-        foreach ($event as $key => $value) {
-            $data['labels'][] =  $this->parsingMonthName($value->_id->month).'-'.$value->_id->year;
+        foreach ($event['result'] as $key => $value) {
+            $data['labels'][] =  $this->parsingMonthName($value['_id']['month']).'-'.$value['_id']['year'];
             $data['data'][]= $value->count;
         } 
       }
@@ -177,10 +177,10 @@ class HomeController extends Controller
         ]);
 
       $eventDetect = array();
-      foreach ($event as $key => $value) {
-        $minutes = $value->_id->minutes< 10 ? '0'.$value->_id->minutes: $value->_id->minutes;
-        $month = $value->_id->month< 10 ? '0'.$value->_id->month: $value->_id->month;
-         $indexArray = ModelsGeneral::newCarbon($value->_id->year.'-'.$month.'-'.$value->_id->day.' '.$value->_id->hour.':'.$minutes.':00');
+      foreach ($event['result'] as $key => $value) {
+        $minutes = $value['_id']['minutes']< 10 ? '0'.$value['_id']['minutes']: $value['_id']['minutes'];
+        $month = $value['_id']['month']< 10 ? '0'.$value['_id']['month']: $value['_id']['month'];
+         $indexArray = ModelsGeneral::newCarbon($value['_id']['year'].'-'.$month.'-'.$value['_id']['day'].' '.$value['_id']['hour'].':'.$minutes.':00');
          $eventDetect[$indexArray->format('Y-m-d-H-i')] =$value->count;
       }
 
@@ -239,3 +239,4 @@ class HomeController extends Controller
    }
 
 }
+

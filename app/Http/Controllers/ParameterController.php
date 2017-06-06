@@ -64,7 +64,7 @@ class ParameterController extends Controller
 
         $data = array();
         $no=$offset;
-        foreach ($parameters as $key => $value) {
+        foreach ($parameters['result'] as $key => $value) {
             $parameter = Parameter::find($value['_id']);
             $no++;
             if(is_array($parameter->pattern)){
@@ -100,3 +100,4 @@ class ParameterController extends Controller
     }
 
 }
+

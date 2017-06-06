@@ -8,8 +8,8 @@ namespace App\Models;
 
 use Jenssegers\Mongodb\Eloquent\Model as Eloquent;
 use Carbon\Carbon;
-
-use MongoDB\BSON\UTCDateTime;
+use DateTime;
+use MongoDate;
 
 class ModelsGeneral extends Eloquent {
 
@@ -25,20 +25,15 @@ class ModelsGeneral extends Eloquent {
     }
 
     public static function fromDateTimeISODate($timestamp, $isIsoDate=false){
-        if($isIsoDate){
-            $timestamp = Carbon::parse( $timestamp);
-        }else{
-            $timestamp = Carbon::createFromFormat('Y-m-d H:i:s', $timestamp);    
-        }
-        
-        return new UTCDateTime($timestamp->getTimestamp() * 1000);
+        return  new MongoDate(strtotime($timestamp));
     }
 
     public static function carbonToUTC($timestamp){        
-        return new UTCDateTime($timestamp->getTimestamp() * 1000);
+    	return  new MongoDate(strtotime($timestamp));
     }
 
 }
 
 
 ?>
+

@@ -67,9 +67,9 @@ class PatternController extends Controller
         $result["recordsFiltered"]= $result["recordsTotal"] = count($countPattern);
 
         $no = $offset;
-        foreach ($patterns as $key => $value) {
+        foreach ($patterns['result'] as $key => $value) {
             $no++;
-            $data[] = array($no, $value->_id->pattern, $value->total);
+            $data[] = array($no, $value['_id']['pattern'], $value->total);
         }
         $result['data'] = $data;
         $result = json_encode($result);
@@ -115,8 +115,8 @@ class PatternController extends Controller
         $i=0;
         $datasets = array('data'=>array(),'backgroundColor'=>array());
         $labels = array();
-        foreach ($patterns as $key => $value) {
-            $labels[] = $value->_id->pattern;
+        foreach ($patterns['result'] as $key => $value) {
+            $labels[] = $value['_id']['pattern'];
             $datasets['data'][]=  $value->total;
             if($i<6){
                 $datasets['backgroundColor'][]=  $colorDoc[$i];    
@@ -140,3 +140,4 @@ class PatternController extends Controller
     }
 
 }
+

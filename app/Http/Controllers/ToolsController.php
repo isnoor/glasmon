@@ -90,10 +90,10 @@ class ToolsController extends Controller
         $result["recordsFiltered"]= $result["recordsTotal"] = count($countFilter);
 
         $no = $offset;
-        foreach ($tools as $key => $value) {
+        foreach ($tools['result'] as $key => $value) {
             $no++;
             $percent = $value->count / $countTools * 100;
-            $tool = isset($value->_id->tool)? $value->_id->tool:'unknown';
+            $tool = isset($value['_id']['tool'])? $value['_id']['tool']:'unknown';
             $data[] = array($no, $tool, $value->count, number_format($percent, 2, '.', ' ')." %");
         }
         $result['data'] = $data;
@@ -119,8 +119,8 @@ class ToolsController extends Controller
         $i=0;
         $datasets = array('data'=>array(),'backgroundColor'=>array());
         $labels = array();
-        foreach ($tools as $key => $value) {
-            $labels[] = isset($value->_id->tool)? $value->_id->tool:'unknown';
+        foreach ($tools['result'] as $key => $value) {
+            $labels[] = isset($value['_id']['tool'])? $value['_id']['tool']:'unknown';
             $datasets['data'][]=  $value->count;
             if($i<6){
                 $datasets['backgroundColor'][]=  $colorDoc[$i];    
@@ -144,3 +144,4 @@ class ToolsController extends Controller
     }
 
 }
+
