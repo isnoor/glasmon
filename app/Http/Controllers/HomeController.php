@@ -209,7 +209,7 @@ class HomeController extends Controller
     public function event(){
       $limit = Input::has('length')? Input::get('length'):15;
       $offset = Input::has('start')? Input::get('start'):0;
-      $event = Event::orderBy('timestamp','asc')->take((int)$limit)->skip((int)$offset)->get()->toArray();
+      $event = Event::orderBy('timestamp','desc')->take((int)$limit)->skip((int)$offset)->get()->toArray();
       $result['draw']= Input::has('draw')?Input::get("draw"):1;
       $result["recordsFiltered"]= $result["recordsTotal"]= Event::count();
       $data = array();
