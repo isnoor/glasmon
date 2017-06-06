@@ -35,7 +35,7 @@ class PatternController extends Controller
                     ['$group' => ['_id'=> [
                                         '_id'=> '$_id', 
                                         'pattern' => '$pattern', 
-                                        'totalPerRow' => ['$sum' => ['$multiply'=> [
+                                        'totalPerRow' => ['$add' =>  [
                                                                     '$daily.01','$daily.02',
                                                                     '$daily.03','$daily.04',
                                                                     '$daily.05','$daily.06',
@@ -48,7 +48,7 @@ class PatternController extends Controller
                                                                     '$daily.19','$daily.20',
                                                                     '$daily.21','$daily.22',
                                                                     '$daily.23','$daily.24','$daily.00'
-                                                                    ]]
+                                                                    ]
                                                             ]
                                         ]
                                     ]
@@ -56,7 +56,7 @@ class PatternController extends Controller
                     ['$unwind' => '$_id' ],
                     ['$group' => [
                         '_id'=> [ 'pattern' => '$_id.pattern'], 
-                        'total' => [ '$sum' =>  '$_id.totalPerRow']
+                        'total' => [ '$add' =>  '$_id.totalPerRow']
                         ]
                     ],
                     ['$sort'=> ['total'=>-1]],
@@ -83,7 +83,7 @@ echo '<pre>';print_r($patterns);echo '</pre>';die('sublime_cek');
                     ['$group' => ['_id'=> [
                                         '_id'=> '$_id', 
                                         'pattern' => '$pattern', 
-                                        'totalPerRow' => ['$sum' =>  [
+                                        'totalPerRow' => ['$add' =>  [
                                                                     '$daily.01','$daily.02',
                                                                     '$daily.03','$daily.04',
                                                                     '$daily.05','$daily.06',
@@ -104,7 +104,7 @@ echo '<pre>';print_r($patterns);echo '</pre>';die('sublime_cek');
                     ['$unwind' => '$_id' ],
                     ['$group' => [
                         '_id'=> [ 'pattern' => '$_id.pattern'], 
-                        'total' => [ '$sum' =>  '$_id.totalPerRow']
+                        'total' => [ '$add' =>  '$_id.totalPerRow']
                         ]
                     ],
                     ['$sort'=> ['total'=>-1]],
