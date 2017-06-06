@@ -65,7 +65,7 @@ class PatternController extends Controller
                 ]);
         $countPattern = Patterndaily::distinct("pattern")->get();
         $result["recordsFiltered"]= $result["recordsTotal"] = count($countPattern);
-
+echo '<pre>';print_r($patterns);echo '</pre>';die('sublime_cek');
         $no = $offset;
         foreach ($patterns['result'] as $key => $value) {
             $no++;
