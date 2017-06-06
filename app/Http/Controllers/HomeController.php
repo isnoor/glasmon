@@ -33,7 +33,7 @@ class HomeController extends Controller
         $countAttack = Event::count();
         $countPattern = Patterndaily::distinct("pattern")->get();
         $countParameter = Parameter::count();
-        $countGlastopf = Hpfeed::where("channel","glastopf.events")->distinct('ident')->get();
+        $countGlastopf = Event::distinct('ident')->get();
         $countAttackMonth = Event::where('timestamp', '>=', new DateTime('first day of this month'))->get();
         $eventLast = Event::orderBy('timestamp','desc')->first();
         $count = array("result"=>true,
@@ -82,16 +82,13 @@ class HomeController extends Controller
 
         foreach ($event['result'] as $key => $value) {
             $data['labels'][] =  'week '.$value['_id']['week'].'-'.$value['_id']['year'];
-            $data['data'][]= $value->count;
+            $data['data'][]= $value['count'];
          }
       }else{
         $event = Event::raw()->aggregate([
             ['$match'  => ['timestamp'=>['$gte'=> ModelsGeneral::fromDateTimeISODate($_POST['startDate']), '$lte'=>ModelsGeneral::fromDateTimeISODate($_POST['endDate'])]]], 
             [ '$group' => [
                "_id" => [
-                   /*"year" => [ '$substr' => [ '$timestamp', 0, 4 ] ],*/
-                   /*"month" => [ '$substr' => [ '$timestamp', 5, 2 ] ]*/
-                    /*'week'=>[ '$week'=> '$timestamp' ],*/
                    'month'  => ['$month' => '$timestamp'],
                     'year'   => ['$year' => '$timestamp']
                ],
@@ -102,7 +99,7 @@ class HomeController extends Controller
 
         foreach ($event['result'] as $key => $value) {
             $data['labels'][] =  $this->parsingMonthName($value['_id']['month']).'-'.$value['_id']['year'];
-            $data['data'][]= $value->count;
+            $data['data'][]= $value['count'];
         } 
       }
         
@@ -181,7 +178,7 @@ class HomeController extends Controller
         $minutes = $value['_id']['minutes']< 10 ? '0'.$value['_id']['minutes']: $value['_id']['minutes'];
         $month = $value['_id']['month']< 10 ? '0'.$value['_id']['month']: $value['_id']['month'];
          $indexArray = ModelsGeneral::newCarbon($value['_id']['year'].'-'.$month.'-'.$value['_id']['day'].' '.$value['_id']['hour'].':'.$minutes.':00');
-         $eventDetect[$indexArray->format('Y-m-d-H-i')] =$value->count;
+         $eventDetect[$indexArray->format('Y-m-d-H-i')] =$value['count'];
       }
 
       for ($i=0; $i < 59; $i++) { 
@@ -239,4 +236,3 @@ class HomeController extends Controller
    }
 
 }
-

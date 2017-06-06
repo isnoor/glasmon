@@ -111,9 +111,9 @@ class IPAddressController extends Controller
         foreach ($listData['result'] as $key => $value) {
             $no++;
             if($searchQuery!=="all" && $searchQuery!=="All"){
-                $data[] = array($no, $searchQuery, $value['_id']['source'], $value->total);
+                $data[] = array($no, $searchQuery, $value['_id']['source'],$value['total']);
             }else{
-                $data[] = array($no, $value['_id']['country'], $value['_id']['source'], $value->total);    
+                $data[] = array($no, $value['_id']['country'], $value['_id']['source'],$value['total']);    
             }
             
         }
@@ -176,7 +176,7 @@ class IPAddressController extends Controller
         $labels = array();
         foreach ($countries['result'] as $key => $value) {
             $labels[] = $value['_id']['country'];
-            $datasets['data'][]=  $value->total;
+            $datasets['data'][]= $value['total'];
             if($i<6){
                 $datasets['backgroundColor'][]=  $colorDoc[$i];    
             }else{
@@ -238,7 +238,7 @@ class IPAddressController extends Controller
         $labels = array();
         foreach ($ipAddress['result'] as $key => $value) {
             $labels[] = $value['_id']['source'];
-            $datasets['data'][]=  $value->total;
+            $datasets['data'][]= $value['total'];
             if($i<6){
                 $datasets['backgroundColor'][]=  $colorDoc[$i];    
             }else{
@@ -261,4 +261,3 @@ class IPAddressController extends Controller
     }
 
 }
-
