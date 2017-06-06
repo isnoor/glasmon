@@ -115,6 +115,7 @@ class PatternController extends Controller
         $i=0;
         $datasets = array('data'=>array(),'backgroundColor'=>array());
         $labels = array();
+        dd($patterns);
         foreach ($patterns['result'] as $key => $value) {
             $labels[] = $value['_id']['pattern'];
             $datasets['data'][]=  $value['total'];
