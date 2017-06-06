@@ -35,7 +35,7 @@ class PatternController extends Controller
                     ['$group' => ['_id'=> [
                                         '_id'=> '$_id', 
                                         'pattern' => '$pattern', 
-                                        'totalPerRow' => ['$sum' =>  [
+                                        'totalPerRow' => ['$sum' => ['$multiply'=> [
                                                                     '$daily.01','$daily.02',
                                                                     '$daily.03','$daily.04',
                                                                     '$daily.05','$daily.06',
@@ -48,7 +48,7 @@ class PatternController extends Controller
                                                                     '$daily.19','$daily.20',
                                                                     '$daily.21','$daily.22',
                                                                     '$daily.23','$daily.24','$daily.00'
-                                                                    ]
+                                                                    ]]
                                                             ]
                                         ]
                                     ]
