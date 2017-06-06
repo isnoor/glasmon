@@ -16,7 +16,7 @@ use App\Models\Glastopf\Ipdaily;
 use App\Models\Glastopf\Parameter;
 use App\Models\ModelsGeneral;
 use DB;
-
+use DateTime;
 use App\HoneyCore\HIHATCore\attacklist;
 use App\HoneyCore\HIHATCore\browserCheck;
 use App\HoneyCore\HIHATCore\filters;
@@ -349,7 +349,7 @@ class PollingUpdate /*extends Controller*/
       $updateProcess = UpdateProcess::orderBy('hpfeed_timestamp','desc')->first();
         
       if($updateProcess){
-         $hpfeed = Hpfeed::where('timestamp', '>', ModelsGeneral::getDateTime($updateProcess->getHpfeedTimestamp()))->where('channel','glastopf.events')->get();  
+         $hpfeed = Hpfeed::where('timestamp', '>', new DateTime($updateProcess->getHpfeedTimestamp()))->where('channel','glastopf.events')->get();  
       }else{
             $hpfeed = Hpfeed::where('channel','glastopf.events')->get();
       }
