@@ -29,9 +29,9 @@ class SensorController extends Controller
     public function index(){
         $limit = Input::has('length')? Input::get('length'):15;
         $offset = Input::has('start')? Input::get('start'):0;
-        $glastopf = Hpfeed::where("channel","glastopf.events")->groupBy('ident')->take((int)$limit)->skip((int)$offset)->get()->toArray();
+        $glastopf = Event::groupBy('ident')->take((int)$limit)->skip((int)$offset)->get()->toArray();
         $result['draw']= Input::has('draw')?Input::get("draw"):1;
-        $result["recordsFiltered"]= $result["recordsTotal"]=Hpfeed::where("channel","glastopf.events")->distinct('ident')->get()->count();
+        $result["recordsFiltered"]= $result["recordsTotal"]=Event::distinct('ident')->get()->count();
         $data = array();
         foreach ($glastopf as $key => $value) {
             $event = Event::where("ident",$value['ident']);
