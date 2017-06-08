@@ -349,9 +349,9 @@ class PollingUpdate /*extends Controller*/
       $updateProcess = UpdateProcess::orderBy('hpfeed_timestamp','desc')->first();
         
       if($updateProcess){
-         $hpfeed = Hpfeed::where('timestamp', '>', new DateTime($updateProcess->getHpfeedTimestamp()))->where('channel','glastopf.events')->timeout(-1)->get();  
+         $hpfeed = Hpfeed::where('timestamp', '>', new DateTime($updateProcess->getHpfeedTimestamp()))->where('channel','glastopf.events')->get();  
       }else{
-            $hpfeed = Hpfeed::where('channel','glastopf.events')->timeout(-1)->get();
+            $hpfeed = Hpfeed::where('channel','glastopf.events')->get();
       }
       return $hpfeed;
    }
