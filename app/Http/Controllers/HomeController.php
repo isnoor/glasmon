@@ -7,7 +7,6 @@
 namespace App\Http\Controllers;
 
 set_time_limit(0);
-use App\Models\Mnemosyne\Hpfeed;
 use App\Models\Glastopf\Event;
 use App\Models\Glastopf\Patterndaily;
 use App\Models\Glastopf\Parameter;
@@ -63,9 +62,9 @@ class HomeController extends Controller
            [  '$sort' =>[ '_id.year'=>1, '_id.month'=>1, '_id.day'=>1] ]
         ]);
 
-        foreach ($event['result'] as $key => $value) {
-            $data['labels'][] =  $value['_id']['day'].'/'.$this->parsingMonthName($value['_id']['month']).'/'.$value['_id']['year'];
-            $data['data'][]= $value['count'];
+        foreach ($event as $key => $value) {
+            $data['labels'][] =  $value->_id->day.'/'.$this->parsingMonthName($value->_id->month).'/'.$value->_id->year;
+            $data['data'][]= $value->count;
         }
       }elseif ($period=="weekly") {
          $event = Event::raw()->aggregate([
@@ -80,15 +79,18 @@ class HomeController extends Controller
            [  '$sort' =>[ '_id.year'=>1, '_id.week'=>1] ]
         ]);
 
-        foreach ($event['result'] as $key => $value) {
-            $data['labels'][] =  'week '.$value['_id']['week'].'-'.$value['_id']['year'];
-            $data['data'][]= $value['count'];
+        foreach ($event as $key => $value) {
+            $data['labels'][] =  'week '.$value->_id->week.'-'.$value->_id->year;
+            $data['data'][]= $value->count;
          }
       }else{
         $event = Event::raw()->aggregate([
             ['$match'  => ['timestamp'=>['$gte'=> ModelsGeneral::fromDateTimeISODate($_POST['startDate']), '$lte'=>ModelsGeneral::fromDateTimeISODate($_POST['endDate'])]]], 
             [ '$group' => [
                "_id" => [
+                   /*"year" => [ '$substr' => [ '$timestamp', 0, 4 ] ],*/
+                   /*"month" => [ '$substr' => [ '$timestamp', 5, 2 ] ]*/
+                    /*'week'=>[ '$week'=> '$timestamp' ],*/
                    'month'  => ['$month' => '$timestamp'],
                     'year'   => ['$year' => '$timestamp']
                ],
@@ -97,9 +99,9 @@ class HomeController extends Controller
            [  '$sort' =>[ '_id.year'=>1, '_id.month'=>1] ]
         ]);
 
-        foreach ($event['result'] as $key => $value) {
-            $data['labels'][] =  $this->parsingMonthName($value['_id']['month']).'-'.$value['_id']['year'];
-            $data['data'][]= $value['count'];
+        foreach ($event as $key => $value) {
+            $data['labels'][] =  $this->parsingMonthName($value->_id->month).'-'.$value->_id->year;
+            $data['data'][]= $value->count;
         } 
       }
         
@@ -174,11 +176,11 @@ class HomeController extends Controller
         ]);
 
       $eventDetect = array();
-      foreach ($event['result'] as $key => $value) {
-        $minutes = $value['_id']['minutes']< 10 ? '0'.$value['_id']['minutes']: $value['_id']['minutes'];
-        $month = $value['_id']['month']< 10 ? '0'.$value['_id']['month']: $value['_id']['month'];
-         $indexArray = ModelsGeneral::newCarbon($value['_id']['year'].'-'.$month.'-'.$value['_id']['day'].' '.$value['_id']['hour'].':'.$minutes.':00');
-         $eventDetect[$indexArray->format('Y-m-d-H-i')] =$value['count'];
+      foreach ($event as $key => $value) {
+        $minutes = $value->_id->minutes< 10 ? '0'.$value->_id->minutes: $value->_id->minutes;
+        $month = $value->_id->month< 10 ? '0'.$value->_id->month: $value->_id->month;
+         $indexArray = ModelsGeneral::newCarbon($value->_id->year.'-'.$month.'-'.$value->_id->day.' '.$value->_id->hour.':'.$minutes.':00');
+         $eventDetect[$indexArray->format('Y-m-d-H-i')] =$value->count;
       }
 
       for ($i=0; $i < 59; $i++) { 
@@ -209,9 +211,15 @@ class HomeController extends Controller
     public function event(){
       $limit = Input::has('length')? Input::get('length'):15;
       $offset = Input::has('start')? Input::get('start'):0;
-      $event = Event::orderBy('timestamp','desc')->take((int)$limit)->skip((int)$offset)->get()->toArray();
+
+      if(Input::has('column') && Input::has('value') && Input::get('column')!="none" && Input::get('value')!="none" && Input::get('value')!=""){
+        $event = Event::where(Input::get('column'), Input::get('value'))->orderBy('timestamp','desc')->take((int)$limit)->skip((int)$offset)->get()->toArray();
+        $result["recordsFiltered"]= $result["recordsTotal"]=Event::where(Input::get('column'), Input::get('value'))->count();
+      }else{
+        $event = Event::orderBy('timestamp','desc')->take((int)$limit)->skip((int)$offset)->get()->toArray();
+        $result["recordsFiltered"]= $result["recordsTotal"]= Event::count();
+      }
       $result['draw']= Input::has('draw')?Input::get("draw"):1;
-      $result["recordsFiltered"]= $result["recordsTotal"]= Event::count();
       $data = array();
       $no = $offset;
       foreach ($event as $key => $value) {
@@ -219,14 +227,19 @@ class HomeController extends Controller
          $source = isset($value['source']['ip'])?$value['source']['ip']:'';
          $destination = isset($value['destination'])? $value['destination'] :'';
          $data[]= array(
-            $no,
-            $value['timestamp'],
-            $destination,
-            $source,
-            $value['method'],
-            implode("<br /> ", $value['parameter']) ,
-            implode(", ", $value['pattern']),
-            $value["_id"] 
+            "no"          =>$no,
+            "timestamp"   =>$value['timestamp'],
+            "destination"  =>$destination,
+            "source"       =>$source,
+            "method"       =>$value['method'],
+            "parameter"    =>implode("<br /> ", $value['parameter']) ,
+            "pattern"      => implode(", ", $value['pattern']),
+            "uuid_event"   =>$value["_id"],
+            "http_v"       =>$value['http_v'],
+            "hpfeed_id"    =>$value['hpfeed_id'],
+            "ident"        =>$value['ident'],
+            "ua_browser"   => isset($value['source']['ua_browser'])?$value['source']['ua_browser']:'',
+            "payload"      =>str_replace("\r\n", "<br />", $value['request_orig'])
             );
       }
       $result['data'] = $data;

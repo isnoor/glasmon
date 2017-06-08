@@ -35,7 +35,7 @@ class PatternController extends Controller
                     ['$group' => ['_id'=> [
                                         '_id'=> '$_id', 
                                         'pattern' => '$pattern', 
-                                        'totalPerRow' => ['$add' =>  [
+                                        'totalPerRow' => ['$sum' =>  [
                                                                     '$daily.01','$daily.02',
                                                                     '$daily.03','$daily.04',
                                                                     '$daily.05','$daily.06',
@@ -56,7 +56,7 @@ class PatternController extends Controller
                     ['$unwind' => '$_id' ],
                     ['$group' => [
                         '_id'=> [ 'pattern' => '$_id.pattern'], 
-                        'total' => [ '$add' =>  '$_id.totalPerRow']
+                        'total' => [ '$sum' =>  '$_id.totalPerRow']
                         ]
                     ],
                     ['$sort'=> ['total'=>-1]],
@@ -65,11 +65,11 @@ class PatternController extends Controller
                 ]);
         $countPattern = Patterndaily::distinct("pattern")->get();
         $result["recordsFiltered"]= $result["recordsTotal"] = count($countPattern);
-echo '<pre>';print_r($patterns);echo '</pre>';die('sublime_cek');
+
         $no = $offset;
-        foreach ($patterns['result'] as $key => $value) {
+        foreach ($patterns as $key => $value) {
             $no++;
-            $data[] = array($no, $value['_id']['pattern'], $value['total']);
+            $data[] = array($no, $value->_id->pattern, $value->total);
         }
         $result['data'] = $data;
         $result = json_encode($result);
@@ -83,7 +83,7 @@ echo '<pre>';print_r($patterns);echo '</pre>';die('sublime_cek');
                     ['$group' => ['_id'=> [
                                         '_id'=> '$_id', 
                                         'pattern' => '$pattern', 
-                                        'totalPerRow' => ['$add' =>  [
+                                        'totalPerRow' => ['$sum' =>  [
                                                                     '$daily.01','$daily.02',
                                                                     '$daily.03','$daily.04',
                                                                     '$daily.05','$daily.06',
@@ -104,7 +104,7 @@ echo '<pre>';print_r($patterns);echo '</pre>';die('sublime_cek');
                     ['$unwind' => '$_id' ],
                     ['$group' => [
                         '_id'=> [ 'pattern' => '$_id.pattern'], 
-                        'total' => [ '$add' =>  '$_id.totalPerRow']
+                        'total' => [ '$sum' =>  '$_id.totalPerRow']
                         ]
                     ],
                     ['$sort'=> ['total'=>-1]],
@@ -115,10 +115,9 @@ echo '<pre>';print_r($patterns);echo '</pre>';die('sublime_cek');
         $i=0;
         $datasets = array('data'=>array(),'backgroundColor'=>array());
         $labels = array();
-        dd($patterns);
-        foreach ($patterns['result'] as $key => $value) {
-            $labels[] = $value['_id']['pattern'];
-            $datasets['data'][]=  $value['total'];
+        foreach ($patterns as $key => $value) {
+            $labels[] = $value->_id->pattern;
+            $datasets['data'][]=  $value->total;
             if($i<6){
                 $datasets['backgroundColor'][]=  $colorDoc[$i];    
             }else{

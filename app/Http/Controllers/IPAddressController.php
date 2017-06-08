@@ -10,6 +10,14 @@ set_time_limit(0);
 use App\Models\Glastopf\Ipdaily;
 use Illuminate\Support\Facades\Input;
 
+use App\Models\Glastopf\Event;
+use App\Models\Glastopf\Patterndaily;
+use App\Models\Glastopf\Parameter;
+
+use App\Models\ModelsGeneral;
+use DB;
+use DateTime;
+
 class IPAddressController extends Controller
 {
     /**
@@ -108,12 +116,12 @@ class IPAddressController extends Controller
         
 
         $no = $offset;
-        foreach ($listData['result'] as $key => $value) {
+        foreach ($listData as $key => $value) {
             $no++;
             if($searchQuery!=="all" && $searchQuery!=="All"){
-                $data[] = array($no, $searchQuery, $value['_id']['source'],$value['total']);
+                $data[] = array("no"=>$no, "country"=>$searchQuery, "ip"=>$value->_id->source, "count"=>$value->total);
             }else{
-                $data[] = array($no, $value['_id']['country'], $value['_id']['source'],$value['total']);    
+                $data[] = array("no"=>$no, "country"=>$value->_id->country, "ip"=>$value->_id->source, "count"=>$value->total);
             }
             
         }
@@ -174,9 +182,9 @@ class IPAddressController extends Controller
         $i=0;
         $datasets = array('data'=>array(),'backgroundColor'=>array());
         $labels = array();
-        foreach ($countries['result'] as $key => $value) {
-            $labels[] = $value['_id']['country'];
-            $datasets['data'][]= $value['total'];
+        foreach ($countries as $key => $value) {
+            $labels[] = $value->_id->country;
+            $datasets['data'][]=  $value->total;
             if($i<6){
                 $datasets['backgroundColor'][]=  $colorDoc[$i];    
             }else{
@@ -236,9 +244,9 @@ class IPAddressController extends Controller
         $i=0;
         $datasets = array('data'=>array(),'backgroundColor'=>array());
         $labels = array();
-        foreach ($ipAddress['result'] as $key => $value) {
-            $labels[] = $value['_id']['source'];
-            $datasets['data'][]= $value['total'];
+        foreach ($ipAddress as $key => $value) {
+            $labels[] = $value->_id->source;
+            $datasets['data'][]=  $value->total;
             if($i<6){
                 $datasets['backgroundColor'][]=  $colorDoc[$i];    
             }else{
@@ -258,6 +266,35 @@ class IPAddressController extends Controller
         $result = json_encode($result);
 
         return $result;
+    }
+
+    public function lineChart(){
+      $ipAddressSearch = Input::has('ip_address')?Input::get("ip_address"):'';
+      $ipAddress = Ipdaily::where('source', $ipAddressSearch)->orderBy('date','asc')->get()->toArray();
+
+      $data = array();
+      $cache = array();
+      foreach ($ipAddress as $key => $row) {
+         foreach ($row['daily'] as $hour => $count) {
+            $date = explode(' ', $row['date']); 
+            if(isset($cache[$date[0]][$hour])){
+               $cache[$date[0]][$hour]['count'] = $cache[$date[0]][$hour]['count'] + $count;
+            }else{
+               $cache[$date[0]][$hour]['count'] = $count;
+            }
+         }
+      }
+
+      foreach ($cache as $date => $daily) {
+         ksort($daily);
+         foreach ($daily as $hour => $value) {
+            $data[]= array("x"=>$date.' '.$hour.":00", "y"=>$value['count']);  
+         }
+      }
+      
+      $data = json_encode(array("result"=>true,
+                  "data"=>$data));
+      return $data;  
     }
 
 }

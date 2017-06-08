@@ -7,7 +7,6 @@
 namespace App\Http\Controllers;
 
 set_time_limit(0);
-use App\Models\Mnemosyne\Hpfeed;
 use App\Models\Glastopf\Event;
 use Illuminate\Support\Facades\Input;
 

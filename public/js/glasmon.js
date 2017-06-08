@@ -365,11 +365,11 @@
             });
          }            
       },
-      componentWillReceiveProps: function(){
+      componentWillReceiveProps: function(nextProps){
          this.setState({
-            optional : this.props.optional
+            optional : nextProps.optional
          });
-         this.forceUpdate();
+         /*this.forceUpdate();*/
       },
       changeFilter: function(event){
          var optional = this.state.optional;
@@ -722,6 +722,197 @@
       },
    });
 
+var datatable_state_live = '';
+
+   var DataTablesIPaddress = React.createClass( {
+      getInitialState: function(){
+         if(this.props.shouldUpdate){
+            var shouldUpdate = this.props.shouldUpdate;
+         }else{
+            var shouldUpdate = false;
+         }
+         return {
+            id: this.props.id,
+            header : this.props.header,
+            url : this.props.url,
+            shouldUpdate : shouldUpdate,
+            optional : this.props.optional
+         }
+      },
+      shouldComponentUpdate: function(nextProps, nextState){
+         return this.state.shouldUpdate;
+      },setReloadTable(){
+          let state = this.state;
+         var globalObj = this;
+           datatable_state_live = $('#'+this.state.id).DataTable({
+            processing: true,
+            searching : false,
+            ordering: false,
+            serverSide: true,
+            destroy:true,
+            ajax:{
+               url : state.url,
+               type: "POST",
+               data: function ( d ) {
+                  $.extend(d, globalObj.state.optional);
+                  return d;
+                  }
+               },
+            columns: [
+               {
+                  "className":      'details-control',
+                  "orderable":      false,
+                  "data":          null,
+                  "defaultContent": "<button type='button' class='btn btn-block btn-primary btn-sm'><i class='fa  fa-plus-square-o'></i></button>",
+                  "width": 30
+               },
+               { "data": "no" },
+               { "data": "country" },
+               { "data": "ip" },
+               { "data": "count" }
+               ]
+            });
+
+            $('#'+this.state.id+' tbody').off('click').on('click', 'td.details-control', function () {
+               var tr = $(this).closest('tr');
+               console.log(tr);
+               var row = datatable_state_live.row( tr );
+          
+                if ( row.child.isShown() ) {
+               /* This row is already open - close it */
+               row.child.hide();
+               $(this).html("<button type='button' class='btn btn-block btn-primary btn-sm'><i class='fa  fa-plus-square-o'></i></button>")
+               tr.removeClass('shown'); 
+            }
+            else {
+               /* Open this row */
+               let d = row.data();
+               row.child( '<div  style="height: 300px;width: 100%; "><canvas className="chart" id="'+$(this).attr('id')+d.ip+'" style="height: 100%;width: 100%; "></canvas> </div>').show();
+               $(this).html("<button type='button' class='btn btn-block btn-sm'><i class='fa  fa-minus-square-o'></i></button>")
+               $.ajax({
+                  url : "api/ip_address/line",
+                  type: "POST",
+                  dataType: "json",
+                  data : "ip_address="+d.ip,
+                  datatable_row : row,
+                  id_target : $(this).attr('id')+d.ip, 
+                  success: function(data, textStatus, jqXHR){
+                     if (data.data.length == 1) {
+                        this.datatable_row.child('<table class="table table-bordered table-condensed" style="padding-left:50px;">'+
+                             '<tr>'+
+                                 '<th>Data</th>'+
+                                 '<td>'+data.data[0].x +'</td>'+
+                             '</tr>'+
+                             '<tr>'+
+                                 '<th>Count</th>'+
+                                 '<td>'+ data.data[0].y+'</td>'+
+                             '</tr>'+
+                         '</table>');
+                     }else{
+                        var config = {
+                        type: 'line',
+                        data: {
+                           datasets: [{
+                              label: "count",
+                              data: data.data,
+                              borderColor: 'rgba(54, 162, 235, 1)',
+                              fill: "boundary",
+                              lineTension: 0,
+                              bezierCurve: false
+                           }]
+                        },
+                        options: {
+                           responsive: true,
+                           maintainAspectRatio: false,
+                           scales: {
+                              xAxes: [{
+                                 type: 'time',
+                                 time: {
+                                       format: 'YYYY-MM-DD HH:mm',
+                                       tooltipFormat: 'll HH:mm'
+                                   },
+                                 scaleLabel: {
+                                    display: true,
+                                    labelString: 'Date'
+                                 }
+                                 }],
+                              },
+                           }
+                        };
+
+                        var ctx = document.getElementById(this.id_target).getContext("2d");
+                        let chart = new Chart(ctx, config);          
+                     }
+                  },
+                  error: function (xhr) {
+                     console.log('gagal');
+                  }
+               });
+               tr.addClass('shown');
+            }
+            } );
+      },
+      componentDidMount : function(){
+         this.setReloadTable();
+      },
+      componentDidUpdate: function(){
+         this.setReloadTable();
+      },
+      componentWillReceiveProps: function(){
+         this.setState({
+            optional : this.props.optional
+         });
+         this.forceUpdate();
+      },
+      changeFilter: function(event){
+         var optional = this.state.optional;
+         optional.value = event.target.value;
+         this.setState(optional);
+      },
+      render: function(){
+         var header = this.state.header.map(function(d, index){
+            return <th key={d.toString()}>{d}</th>
+         });
+         var filter='';
+         if(this.state.optional){
+            if(this.state.optional.filterStatus ==='active'){
+            var filters = this.props.optional.filters.map(function(d, index){
+                     return <option key={d.toString()}>{d}</option>
+                  });
+            filter = <div className="form-group">
+                  <label className="col-sm-2 control-label"> {this.state.optional.label} </label>
+                  <div className="col-sm-10">
+                     <select className="form-control" onChange={this.changeFilter}>
+                        {filters}
+                     </select>
+                  </div>
+                </div>;   
+            }   
+         }  
+
+         return (
+            <div className="row">
+               <div className="col-md-12">
+                  {filter}
+               </div>
+               <div className="col-md-12">
+                  <div className="table-responsive">
+                     <table  className="table table-bordered table-striped table-hover" id={this.state.id}>
+                        <thead>
+                           <tr>
+                              {header}
+                           </tr> 
+                        </thead>
+                        <tbody>
+                        </tbody>
+                     </table>
+                  </div>
+               </div>
+            </div>
+         ) ;
+   }
+   });
+
    var IPAddress = React.createClass( {
       getInitialState: function(){
          return {
@@ -732,7 +923,7 @@
                },
                tables : {
                   id: "country-table-content",
-                  header : ["No","Country","IP Address","Count" ],
+                  header : ["Detail","No","Country","IP Address","Count" ],
                   url : "api/country/list",
                   shouldUpdate : true,
                   optional : {filterStatus :'active',
@@ -820,14 +1011,12 @@
               </div>
             </div>
             <div className="col-md-12">
-               <DataTablesCustomize  {...this.state.country.tables} />
+               <DataTablesIPaddress  {...this.state.country.tables} />
             </div>
           </div>
          );
       },
    });
-
-   var isRunningPolling = false;
 
    var PollingAttack = React.createClass( {
       getInitialState: function(){
@@ -888,7 +1077,7 @@
       render : function() {
         let classMaster = '';
         if(this.state.showLoad === true){
-          classMaster = "box-tools pull-right col-md-4";
+          classMaster = "box-tools pull-right col-md-4 col-sm-6 col-xs-6";
         }else{
           classMaster = "box-tools pull-right";
         }
@@ -907,6 +1096,224 @@
               }
             </div>
          );
+      },
+   });
+
+function detailEvent(d){
+   return '<table  class="table table-bordered table-condensed"  style="padding-left:50px;">'+
+        '<tr>'+
+            '<th>UUID_event</th>'+
+            '<td>'+d.uuid_event+'</td>'+
+        '</tr>'+
+        '<tr>'+
+            '<th>Hpfeed ID</th>'+
+            '<td>'+d.hpfeed_id+'</td>'+
+        '</tr>'+
+        '<tr>'+
+            '<th>Ident</th>'+
+            '<td>'+d.ident+'</td>'+
+        '</tr>'+
+        '<tr>'+
+            '<th>HTTP version</th>'+
+            '<td>'+d.http_v+'</td>'+
+        '</tr>'+
+        '<tr>'+
+            '<th>Tool</th>'+
+            '<td>'+d.ua_browser+'</td>'+
+        '</tr>'+
+        '<tr>'+
+            '<th>HTTP request</th>'+
+            '<td>'+d.payload+'</td>'+
+        '</tr>'+
+    '</table>';
+}
+
+   var DataTablesEvent = React.createClass( {
+      getInitialState: function(){
+         if(this.props.shouldUpdate){
+            var shouldUpdate = this.props.shouldUpdate;
+         }else{
+            var shouldUpdate = false;
+         }
+         return {
+            id: this.props.id,
+            header : this.props.header,
+            url : this.props.url,
+            shouldUpdate : shouldUpdate,
+            optional : this.props.optional
+         }
+      },
+      shouldComponentUpdate: function(nextProps, nextState){
+         return this.state.shouldUpdate;
+      },
+      setReloadTable: function(){
+         let state = this.state;
+         var globalObj = this;
+         datatable_state_live = $('#'+this.state.id).DataTable({
+            processing: true,
+            searching : false,
+            ordering: false,
+            serverSide: true,
+            destroy:true,
+            ajax:{
+               url : state.url,
+               type: "POST",
+               data: function ( d ) {
+                  $.extend(d, globalObj.state.optional);
+                  return d;
+                  }
+               },
+            columns: [
+               {
+                  "className":      'details-control',
+                  "orderable":      false,
+                  "data":          null,
+                  "defaultContent": "<button type='button' class='btn btn-block btn-primary btn-sm'><i class='fa  fa-plus-square-o'></i></button>",
+                  "width": 30
+               },
+               { "data": "no" },
+               { "data": "timestamp" },
+               { "data": "destination" },
+               { "data": "source" },
+               { "data": "method" },
+               { "data": "parameter" },
+               { "data": "pattern" }
+               ]
+         });
+
+         $('#'+this.state.id+' tbody').off('click').on('click', 'td.details-control', function () {
+               var tr = $(this).closest('tr');
+               console.log(tr);
+               var row = datatable_state_live.row( tr );
+          
+                if ( row.child.isShown() ) {
+               /* This row is already open - close it */
+               row.child.hide();
+               $(this).html("<button type='button' class='btn btn-block btn-primary btn-sm'><i class='fa  fa-plus-square-o'></i></button>")
+               tr.removeClass('shown'); 
+            }
+            else {
+               /* Open this row */
+               let d = row.data();
+               row.child( detailEvent(d)).show();
+               $(this).html("<button type='button' class='btn btn-block btn-sm'><i class='fa  fa-minus-square-o'></i></button>");
+               tr.addClass('shown');
+            }
+            } );
+      },componentDidMount: function(){
+         this.setReloadTable();
+      },
+      componentDidUpdate: function(){
+         this.setReloadTable();
+      },
+      componentWillReceiveProps: function(nextProps){
+         this.setState({
+            optional : nextProps.optional
+         });
+      },
+      changeFilter: function(event){
+         var optional = this.state.optional;
+         optional.value = event.target.value;
+         this.setState(optional);
+      },
+      render: function(){
+         var header = this.state.header.map(function(d, index){
+            return <th key={d.toString()}>{d}</th>
+         });
+         var filter='';
+         if(this.state.optional){
+            if(this.state.optional.filterStatus ==='active'){
+            var filters = this.props.optional.filters.map(function(d, index){
+                     return <option key={d.toString()}>{d}</option>
+                  });
+            filter = <div className="form-group">
+                  <label className="col-sm-2 control-label"> {this.state.optional.label} </label>
+                  <div className="col-sm-10">
+                     <select className="form-control" onChange={this.changeFilter}>
+                        {filters}
+                     </select>
+                  </div>
+                </div>;   
+            }   
+         }  
+
+         return (
+            <div className="row">
+               <div className="col-md-12">
+                  {filter}
+               </div>
+               <div className="col-md-12">
+                  <div className="table-responsive">
+                     <table  className="table table-bordered table-striped table-hover" id={this.state.id}>
+                        <thead>
+                           <tr>
+                              {header}
+                           </tr> 
+                        </thead>
+                        <tbody>
+                        </tbody>
+                     </table>
+                  </div>
+               </div>
+            </div>
+         ) ;
+   }
+   });
+   var DataEvent = React.createClass( {
+      getInitialState: function(){
+         return {
+            id: this.props.id,
+            idField : "event-column",
+            idSearch : "event-search-value",
+            header : this.props.header,
+            url : this.props.url,
+            shouldUpdate : true,
+            optional : {filterStatus : 'non active',
+               column:"none",
+               value : "none",
+               label : "Event searching",
+               filters:[]}
+         }
+      },eventFilter: function(){
+         this.setState({
+            optional : {filterStatus : 'non active',
+               column: $("#"+this.state.idField).val(),
+               value : $("#"+this.state.idSearch).val(),
+               label : "Event searching",
+               filters:[]}
+         });
+      },
+      render : function() {
+         return (
+            <div className="row">
+               <div className="col-md-12 col-sm-12 col-xs-12">
+               <div role="form">
+                  <div className="col-md-4 col-sm-12">
+                     <select className="form-control" id={this.state.idField}>
+                        <option value="hpfeed_id">ID Hpfeed</option>
+                        <option value="ident">Ident Sensor</option>
+                        <option value="destination">IP Address of Sensor</option>
+                        <option value="source.ip">IP Address of Attacker</option>
+                        <option value="source.ua_browser">Attacker's tool</option>
+                        <option value="method">Method</option>
+                        <option value="http_v">HTTP version</option>
+                     </select>
+                  </div>
+
+                  <div className="col-md-7 col-sm-12">
+                     <input id={this.state.idSearch} className="form-control" placeholder="Identical searching (regex, case sensitive)..." type="text"></input>
+                  </div>
+                  <div className="col-md-1 col-sm-12">
+                     <button type="button" className="btn btn-info btn-flat" onClick={this.eventFilter}>find</button>
+                  </div>
+               </div>
+               </div>
+               <br /><br />
+               <div className="col-md-12 col-sm-12 col-xs-12">
+                  <DataTablesEvent  {...this.state} />
+               </div>
+            </div>
+            );
       },
    });
 
@@ -975,7 +1382,7 @@
                      },
                      defaultDetail : {
                         id: "table-content-sensor",
-                        header : ["No","Time","IP Honeypot","IP Attacker", "Method","Parameter","Pattern" , "UUID_event"],
+                        header : ["Detail","No","Time","IP Honeypot","IP Attacker", "Method","Parameter","Pattern"],
                         url : "api/home/event"
                      }
                   }
@@ -1108,7 +1515,7 @@
                      detailContent =  <Method />;
                   break;
                   default:
-                     detailContent = <DataTablesCustomize  {...this.state.defaultDetail} />;
+                     detailContent = <DataEvent  {...this.state.defaultDetail} />;
                   break;
                }
                let pollingStatus = "";

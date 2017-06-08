@@ -96,7 +96,7 @@ class PollingUpdate /*extends Controller*/
             $attackRowPattern[] = $payload['pattern'] ;
             $attackRow->request_orig = $payload['request_raw'];
             $attackRow->timestamp = $row->timestamp/*->format('Y-m-d H:i:s')*/;
-            $attackRowSource['ip'] = $payload['source'][0];
+            $attackRowSource['ip'] = str_replace(" ", "", $payload['source'][0]);
             $attackRowSource['port'] = $payload['source'][1];
             $attackRowSource['ua_orig'] = "unknown";
             $attackRow->sensor_id = $payload["sensorid"];
@@ -124,7 +124,7 @@ class PollingUpdate /*extends Controller*/
                   $attackRowSource['ua_browser'] =$browserCheck->browserCheckCore($attackRowSource['ua_orig']);
                }elseif(strpos($request_value, 'Host:') !== false){
                   $attackRow["destination"] = explode('Host:', $request_value);
-                  $attackRow["destination"] = $attackRow->destination[1];
+                  $attackRow["destination"] = str_replace(" ", "", $attackRow->destination[1]);
                }else{
                   $tag_cek =false;
                   foreach ($http_request_tag as $key_tag => $tag) {
@@ -349,9 +349,9 @@ class PollingUpdate /*extends Controller*/
       $updateProcess = UpdateProcess::orderBy('hpfeed_timestamp','desc')->first();
         
       if($updateProcess){
-         $hpfeed = Hpfeed::where('timestamp', '>', new DateTime($updateProcess->getHpfeedTimestamp()))->where('channel','glastopf.events')->timeout(-1)->get();  
+         $hpfeed = Hpfeed::where('timestamp', '>', new DateTime($updateProcess->getHpfeedTimestamp()))->where('channel','glastopf.events')->get();  
       }else{
-            $hpfeed = Hpfeed::where('channel','glastopf.events')->timeout(-1)->get();
+            $hpfeed = Hpfeed::where('channel','glastopf.events')->get();
       }
       return $hpfeed;
    }
