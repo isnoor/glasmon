@@ -91,14 +91,14 @@ class browserCheck{
       }else if(strpos($http_user_agent, 'Safari/') ==! false && (strpos($http_user_agent, 'Chrome/') === false && strpos($http_user_agent, 'CriOS/') === false && strpos($http_user_agent, 'FxiOS/') === false)){
         $browser =  $detectionArray["Safari"];
       }else if(strpos($http_user_agent, 'OPR/') ==! false || strpos($http_user_agent, 'Opera/') ==! false  ){
-        $browser =  $strArray[2];
+        $browser =  $detectionArray["OPR"];
       }else{
         foreach ($detectionArray as $key => $value) {
           if ( strpos( $http_user_agent, $key ) !== false ) {
             $http_user_agent = htmlentities($http_user_agent);
             if ( browserCheck::isWebSpider( $http_user_agent) )
               $browser = "BOT";
-            else $browser = $value;
+            else $browser = trim($value);
             break;
           }
         }

@@ -84,6 +84,7 @@ class PollingUpdate /*extends Controller*/
          $attacksCategory = new attacklist();
          
          $countDetect = 0 ;
+         $updateProcessTimeSave = 0;
          foreach ($attack as $key => $row) {
             // init variables for attack-detection  ( as new table starts )
             $payload = $row->payload;
@@ -96,7 +97,7 @@ class PollingUpdate /*extends Controller*/
             $attackRowPattern[] = $payload['pattern'] ;
             $attackRow->request_orig = $payload['request_raw'];
             $attackRow->timestamp = $row->timestamp/*->format('Y-m-d H:i:s')*/;
-            $attackRowSource['ip'] = $payload['source'][0];
+            $attackRowSource['ip'] = str_replace(" ", "", $payload['source'][0]);
             $attackRowSource['port'] = $payload['source'][1];
             $attackRowSource['ua_orig'] = "unknown";
             $attackRow->sensor_id = $payload["sensorid"];
@@ -124,7 +125,7 @@ class PollingUpdate /*extends Controller*/
                   $attackRowSource['ua_browser'] =$browserCheck->browserCheckCore($attackRowSource['ua_orig']);
                }elseif(strpos($request_value, 'Host:') !== false){
                   $attackRow["destination"] = explode('Host:', $request_value);
-                  $attackRow["destination"] = $attackRow->destination[1];
+                  $attackRow["destination"] = str_replace(" ", "", $attackRow->destination[1]);
                }else{
                   $tag_cek =false;
                   foreach ($http_request_tag as $key_tag => $tag) {
@@ -185,15 +186,35 @@ class PollingUpdate /*extends Controller*/
             $this->addCounterIpDaily($attackRowSource['ip'], isset($attackRow->destination)?$attackRow->destination:"", $row->timestamp);
             $this->addCounterParameter($attackRow->parameter, $attackRowPattern, $row->timestamp);
             /*insert into pattern_daily*/
+            if($updateProcessTimeSave ==10){
+               $lastTime = $attack[$countDetect-1];
+               $lastTime = $lastTime->timestamp->addSecond();
+               $lastTime = $lastTime->format('Y-m-d H:i:s') ;
+               
+               $updateProcess = UpdateProcess::orderBy('hpfeed_timestamp','desc')->first();        
+               if(!$updateProcess){
+                  $updateProcess = new UpdateProcess();
+               }
 
+               $updateProcess->hpfeed_timestamp = $lastTime;
+               $updateProcess->server_timestamp=date("Y-m-d H:i:s");
+               $updateProcess->save();
+               $updateProcessTimeSave =0;
+            }else{
+               $updateProcessTimeSave++;
+            }
          } // end: foreach master
          
          $lastTime = $attack[$countDetect-1];
          $lastTime = $lastTime->timestamp->addSecond();
          $lastTime = $lastTime->format('Y-m-d H:i:s') ;
-         $updateProcess = array("hpfeed_timestamp"=>$lastTime, "server_timestamp"=>date("Y-m-d H:i:s"));
 
-         UpdateProcess::insert($updateProcess);
+         $updateProcess = new UpdateProcess();
+         $updateProcess->hpfeed_timestamp = $lastTime;
+         $updateProcess->server_timestamp=date("Y-m-d H:i:s");
+         $updateProcess->save();
+/*
+         UpdateProcess::insert($updateProcess);*/
          return $countDetect;
       } else 
          return 0;
@@ -345,13 +366,13 @@ class PollingUpdate /*extends Controller*/
    }
       
 
-   public function getUnDataAttact(){
+   public function getUnDataAttact($take=5000){
       $updateProcess = UpdateProcess::orderBy('hpfeed_timestamp','desc')->first();
         
       if($updateProcess){
-         $hpfeed = Hpfeed::where('timestamp', '>', new DateTime($updateProcess->getHpfeedTimestamp()))->where('channel','glastopf.events')->get();  
+         $hpfeed = Hpfeed::where('timestamp', '>', new DateTime($updateProcess->getHpfeedTimestamp()))->where('channel','glastopf.events')->take($take)->get();  
       }else{
-            $hpfeed = Hpfeed::where('channel','glastopf.events')->get();
+         $hpfeed = Hpfeed::where('channel','glastopf.events')->take($take)->get();
       }
       return $hpfeed;
    }

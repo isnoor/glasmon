@@ -31,20 +31,59 @@ class ToolsController extends Controller
 
         $data = array();
         if($searchQuery!=="all" && $searchQuery!=="All"){
-            $userAgentOrig = Event::where('source.ua_browser',$searchQuery)->take((int)$limit)->skip((int)$offset)->get()->toArray();
-            $result["recordsFiltered"]= $result["recordsTotal"] = Event::where('source.ua_browser',$searchQuery)->count();
+            // $userAgentOrig = Event::where('source.ua_browser',$searchQuery)->take((int)$limit)->skip((int)$offset)->get()->toArray();
+            $userAgentOrig = Event::raw()->aggregate([
+                    ['$unwind' => '$source'],
+                    ['$match'  => ['source.ua_browser'=> $searchQuery]], 
+                    ['$group' => ['_id'=> [ 
+                                        'tool' => '$source.ua_browser',
+                                        'ua_orig'=>'$source.ua_orig'
+                                        ],
+                                "count" => [ '$sum' => 1 ]
+                                    ]
+                    ],
+                    ['$sort'=> ['count'=>-1]],
+                    ['$skip' => (int)$offset],
+                    ['$limit'=> (int)$limit]
+                ]);
+            $count = Event::where('source.ua_browser',$searchQuery)->distinct()->get(['source.ua_orig','source.ua_browser']);
+            $result["recordsFiltered"]= $result["recordsTotal"] = count($count);
         }else{
-            $userAgentOrig = Event::take((int)$limit)->skip((int)$offset)->get()->toArray();
-            $result["recordsFiltered"]= $result["recordsTotal"] = Event::count();
+            // $userAgentOrig = Event::take((int)$limit)->skip((int)$offset)->get()->toArray();
+            $userAgentOrig = Event::raw()->aggregate([
+                    ['$unwind' => '$source'],
+                    ['$group' => ['_id'=> [ 
+                                        'tool' => '$source.ua_browser',
+                                        'ua_orig'=>'$source.ua_orig'
+                                        ],
+                                "count" => [ '$sum' => 1 ]
+                                    ]
+                    ],
+                    ['$sort'=> ['count'=>-1]],
+                    ['$skip' => (int)$offset],
+                    ['$limit'=> (int)$limit]
+                ]);
+            $count = Event::distinct()->get(['source.ua_orig','source.ua_browser']);
+            $result["recordsFiltered"]= $result["recordsTotal"] = count($count);
         }
-        
-
+    
         $no = $offset;
         foreach ($userAgentOrig as $key => $value) {
+            /*$detailUserAgentOrig = Event::where('source.ua_orig',$value->_id->ua_orig)->get()->toArray();*/
+            /*$uuid ='';
+            $detailCount = 0;*/
+            /*foreach ($detailUserAgentOrig as $key1 => $value1) {
+                $detailCount++;
+                $uuid .= $value1['_id'].',';
+            }
+            $uuid= $detailCount." events <br /><pre class='prettyprint'><code class='lang-html'>".$uuid."</code></pre>";*/
+            /*$count = Event::where('source.ua_orig',$value->_id->ua_orig)->count();*/
+            $uuid= $value->count." events ";
+            $detailUserAgentOrig = Event::where('source.ua_orig',$value->_id->ua_orig)->take(1)->get()->toArray();
             $no++;
-            $ua_browser = isset($value['source']['ua_browser'])?$value['source']['ua_browser']:'';
-            $ua_orig = isset($value['source']['ua_orig'])?$value['source']['ua_orig']:'';
-            $data[] = array($no, $ua_browser, $ua_orig, $value['_id']);
+            $ua_browser = isset($value->_id->tool)?$value->_id->tool:'';
+            $ua_orig = isset($value->_id->ua_orig)?$value->_id->ua_orig:'';
+            $data[] = array($no, $ua_browser, $ua_orig, $uuid);
         }
         $result['data'] = $data;
         $result = json_encode($result);
@@ -112,7 +151,7 @@ class ToolsController extends Controller
                                     ]
                     ],
                     ['$sort'=> ['count'=>-1]],
-                    ['$limit'=> 20]
+                    ['$limit'=> 10]
                 ]);
         $colorDoc =array('rgb(211, 55, 36)','rgb(0, 141, 76)', 'rgb(53, 124, 165)','rgb(219, 139, 11)', 'rgb(85, 82, 153)','rgb(57, 204, 204)' );
        

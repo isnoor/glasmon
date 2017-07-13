@@ -54,6 +54,8 @@ $app->post( '/api/pattern/list' , "PatternController@index");
 
 $app->post( '/api/ip_address/pie' , "IPAddressController@pieChart");
 
+$app->post( '/api/ip_address/line' , "IPAddressController@lineChart");
+
 $app->post( '/api/country/pie' , "IPAddressController@countryPieChart");
 
 $app->post( '/api/country/list' , "IPAddressController@index");

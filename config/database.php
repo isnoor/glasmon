@@ -15,7 +15,7 @@
             ],
             'mongodb1' => [ 
                 'driver' => 'mongodb',
-                'host' => env('DB_HOST', 'localhost'),
+                'host' => env('DB_HOST1', 'localhost'),
                 'port' => env('DB_PORT', 27017),
                 'database' => env('DB_DATABASE1'),
                 'username' => env('DB_USERNAME'),

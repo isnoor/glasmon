@@ -7,7 +7,6 @@
 namespace App\Http\Controllers;
 
 set_time_limit(0);
-use App\Models\Mnemosyne\Hpfeed;
 use App\Models\Glastopf\Event;
 
 use Illuminate\Support\Facades\Input;
@@ -37,8 +36,9 @@ class PollingController extends Controller
         $this->polling();
         if($_POST["timestamp"]!="undefined"){
             $timestamp = DateTime::createFromFormat('Y-m-d H:i:s', Input::get("timestamp"));
-            $events = Event::where('timestamp', '>',$timestamp)->get();
-            $count = count($events);
+            /*$events = Event::where('timestamp', '>',$timestamp)->get();
+            $count = count($events);*/
+            $count = Event::where('timestamp', '>',$timestamp)->count();
         }else{
             $count = 0;
         }

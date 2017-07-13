@@ -7,10 +7,10 @@
 namespace App\Http\Controllers;
 
 set_time_limit(0);
-use App\Models\Mnemosyne\Hpfeed;
 use App\Models\Glastopf\Event;
 use App\Models\Glastopf\Patterndaily;
 use App\Models\Glastopf\Parameter;
+use App\Models\Glastopf\Ipdaily;
 
 use App\Models\ModelsGeneral;
 use DB;
@@ -33,15 +33,55 @@ class HomeController extends Controller
         $countAttack = Event::count();
         $countPattern = Patterndaily::distinct("pattern")->get();
         $countParameter = Parameter::count();
-        $countGlastopf = Hpfeed::where("channel","glastopf.events")->distinct('ident')->get();
-        $countAttackMonth = Event::where('timestamp', '>=', new DateTime('first day of this month'))->get();
+        $countGlastopf = Event::distinct('ident')->get();
+        $countAttackMonth = 0;/*//Event::where('timestamp', '>=', new DateTime('first day of this month'))->get();*/
+        $attackMonth = Ipdaily::raw()->aggregate([
+                    ['$project'=>["year" => [ '$substr' => [ '$date', 0, 4 ] ],
+                                 "month" => [ '$substr' => [ '$date', 5, 2 ] ],
+                                 'daily' => '$daily'
+                                 ] 
+                    ],
+                    ['$match' =>["year" =>date('Y'), "month"=>date('m')]
+                     ], 
+                    ['$unwind' => '$daily' ],
+                    ['$group' => ['_id'=> [
+                                        '_id'=> '$_id', 
+                                        'totalPerRow' => ['$sum' =>  [
+                                                                    '$daily.01','$daily.02',
+                                                                    '$daily.03','$daily.04',
+                                                                    '$daily.05','$daily.06',
+                                                                    '$daily.07','$daily.08',
+                                                                    '$daily.09','$daily.10',
+                                                                    '$daily.11','$daily.12',
+                                                                    '$daily.13','$daily.14',
+                                                                    '$daily.15','$daily.16',
+                                                                    '$daily.17','$daily.18',
+                                                                    '$daily.19','$daily.20',
+                                                                    '$daily.21','$daily.22',
+                                                                    '$daily.23','$daily.24','$daily.00'
+                                                                    ]
+                                                            ]
+                                        ]
+                                    ]
+                    ],
+                    ['$unwind' => '$_id' ],
+                    ['$group' => [
+                        '_id'=> null, 
+                        'total' => [ '$sum' =>  '$_id.totalPerRow']
+                        ]
+                    ]
+                ]);
+        foreach ($attackMonth as $key => $value) {
+           $countAttackMonth = $value->total;
+        }
+
         $eventLast = Event::orderBy('timestamp','desc')->first();
         $count = array("result"=>true,
                         "data"=>array("attack"=>$countAttack, 
                             "pattern"=>count($countPattern),
                             "parameter"=>$countParameter,
                             "glastopf_sensor"=>count($countGlastopf),
-                            "attack_last_month"=>count($countAttackMonth),
+                            "attack_last_month"=>$countAttackMonth,
                             "event_last"=>$eventLast));
         $count = json_encode($count);        
         return $count ;
@@ -89,9 +129,6 @@ class HomeController extends Controller
             ['$match'  => ['timestamp'=>['$gte'=> ModelsGeneral::fromDateTimeISODate($_POST['startDate']), '$lte'=>ModelsGeneral::fromDateTimeISODate($_POST['endDate'])]]], 
             [ '$group' => [
                "_id" => [
-                   /*"year" => [ '$substr' => [ '$timestamp', 0, 4 ] ],*/
-                   /*"month" => [ '$substr' => [ '$timestamp', 5, 2 ] ]*/
-                    /*'week'=>[ '$week'=> '$timestamp' ],*/
                    'month'  => ['$month' => '$timestamp'],
                     'year'   => ['$year' => '$timestamp']
                ],
@@ -212,9 +249,15 @@ class HomeController extends Controller
     public function event(){
       $limit = Input::has('length')? Input::get('length'):15;
       $offset = Input::has('start')? Input::get('start'):0;
-      $event = Event::orderBy('timestamp','asc')->take((int)$limit)->skip((int)$offset)->get()->toArray();
+
+      if(Input::has('column') && Input::has('value') && Input::get('column')!="none" && Input::get('value')!="none" && Input::get('value')!=""){
+        $event = Event::where(Input::get('column'), Input::get('value'))->orderBy('timestamp','desc')->take((int)$limit)->skip((int)$offset)->get()->toArray();
+        $result["recordsFiltered"]= $result["recordsTotal"]=Event::where(Input::get('column'), Input::get('value'))->count();
+      }else{
+        $event = Event::orderBy('timestamp','desc')->take((int)$limit)->skip((int)$offset)->get()->toArray();
+        $result["recordsFiltered"]= $result["recordsTotal"]= Event::count();
+      }
       $result['draw']= Input::has('draw')?Input::get("draw"):1;
-      $result["recordsFiltered"]= $result["recordsTotal"]= Event::count();
       $data = array();
       $no = $offset;
       foreach ($event as $key => $value) {
@@ -222,14 +265,20 @@ class HomeController extends Controller
          $source = isset($value['source']['ip'])?$value['source']['ip']:'';
          $destination = isset($value['destination'])? $value['destination'] :'';
          $data[]= array(
-            $no,
-            $value['timestamp'],
-            $destination,
-            $source,
-            $value['method'],
-            implode("<br /> ", $value['parameter']) ,
-            implode(", ", $value['pattern']),
-            $value["_id"] 
+            "no"          =>$no,
+            "timestamp"   =>$value['timestamp'],
+            "destination"  =>$destination,
+            "source"       =>$source,
+            "method"       =>$value['method'],
+            "parameter"    => "<pre class='prettyprint'><code class='lang-html'>". str_replace("<", "&LT;", implode("
+", $value['parameter']))."</code></pre>" ,
+            "pattern"      => implode(", ", $value['pattern']),
+            "uuid_event"   =>$value["_id"],
+            "http_v"       =>$value['http_v'],
+            "hpfeed_id"    =>$value['hpfeed_id'],
+            "ident"        =>$value['ident'],
+            "ua_browser"   => isset($value['source']['ua_browser'])?$value['source']['ua_browser']:'',
+            "payload"      =>str_replace("\r\n", "<br />", $value['request_orig'])
             );
       }
       $result['data'] = $data;

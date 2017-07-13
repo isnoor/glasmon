@@ -10,6 +10,14 @@ set_time_limit(0);
 use App\Models\Glastopf\Ipdaily;
 use Illuminate\Support\Facades\Input;
 
+use App\Models\Glastopf\Event;
+use App\Models\Glastopf\Patterndaily;
+use App\Models\Glastopf\Parameter;
+
+use App\Models\ModelsGeneral;
+use DB;
+use DateTime;
+
 class IPAddressController extends Controller
 {
     /**
@@ -111,9 +119,9 @@ class IPAddressController extends Controller
         foreach ($listData as $key => $value) {
             $no++;
             if($searchQuery!=="all" && $searchQuery!=="All"){
-                $data[] = array($no, $searchQuery, $value->_id->source, $value->total);
+                $data[] = array("no"=>$no, "country"=>$searchQuery, "ip"=>$value->_id->source, "count"=>$value->total);
             }else{
-                $data[] = array($no, $value->_id->country, $value->_id->source, $value->total);    
+                $data[] = array("no"=>$no, "country"=>$value->_id->country, "ip"=>$value->_id->source, "count"=>$value->total);
             }
             
         }
@@ -167,7 +175,7 @@ class IPAddressController extends Controller
                         ]
                     ],
                     ['$sort'=> ['total'=>-1]],
-                    ['$limit'=> 15]
+                    ['$limit'=> 10]
                 ]);
         $colorDoc =array('rgb(211, 55, 36)','rgb(0, 141, 76)', 'rgb(53, 124, 165)','rgb(219, 139, 11)', 'rgb(85, 82, 153)','rgb(57, 204, 204)' );
        
@@ -229,7 +237,7 @@ class IPAddressController extends Controller
                         ]
                     ],
                     ['$sort'=> ['total'=>-1]],
-                    ['$limit'=> 15]
+                    ['$limit'=> 10]
                 ]);
         $colorDoc =array('rgb(211, 55, 36)','rgb(0, 141, 76)', 'rgb(53, 124, 165)','rgb(219, 139, 11)', 'rgb(85, 82, 153)','rgb(57, 204, 204)' );
        
@@ -258,6 +266,47 @@ class IPAddressController extends Controller
         $result = json_encode($result);
 
         return $result;
+    }
+
+    public function lineChart(){
+      $ipAddressSearch = Input::has('ip_address')?Input::get("ip_address"):'';
+      $ipAddress = Ipdaily::where('source', $ipAddressSearch)->orderBy('date','asc')->get()->toArray();
+
+      $data = array();
+      $cache = array();
+      foreach ($ipAddress as $key => $row) {
+         foreach ($row['daily'] as $hour => $count) {
+            $date = explode(' ', $row['date']); 
+            if($hour>0){
+                if(!isset($cache[$date[0]][$hour-1])){
+                    $cache[$date[0]][$hour-1]['count'] =0;
+                }    
+            }
+            
+            if(isset($cache[$date[0]][$hour])){
+               $cache[$date[0]][$hour]['count'] = $cache[$date[0]][$hour]['count'] + $count;
+            }else{
+               $cache[$date[0]][$hour]['count'] = $count;
+            }
+
+            if($hour<24){
+                if(!isset($cache[$date[0]][$hour+1])){
+                    $cache[$date[0]][$hour+1]['count'] =0;
+                }    
+            }
+         }
+      }
+
+      foreach ($cache as $date => $daily) {
+         ksort($daily);
+         foreach ($daily as $hour => $value) {
+            $data[]= array("x"=>$date.' '.$hour.":00", "y"=>$value['count']);  
+         }
+      }
+      
+      $data = json_encode(array("result"=>true,
+                  "data"=>$data));
+      return $data;  
     }
 
 }

@@ -75,7 +75,7 @@ class ParameterController extends Controller
 
             $data[]= array(
                 $no,
-                $parameter->parameter,
+                "<pre class='prettyprint'><code class='lang-html'>". str_replace("<", "&LT;", $parameter->parameter)."</code></pre>",
                 $pattern ,
                 $value['count']
                 );
